@@ -1,6 +1,5 @@
-# UDP Discovery Example
 #
-# Logs traffic on the Dynamic Device Discovery port 
+# Logs traffic on the Dynamic Device Discovery port
 #
 # Works on Linux, Windows appears to filter out UDP from the network even when the firewall is set to allow it
 #
@@ -42,7 +41,7 @@ import Domoticz
 
 class BasePlugin:
     BeaconConn = None
-    
+
     def __init__(self):
         return
 
@@ -55,7 +54,8 @@ class BasePlugin:
             logFile = open(Parameters["HomeFolder"]+Parameters["Key"]+".log",'w')
 
         sAddress, sep, sPort = Parameters["Mode1"].partition(':')
-        self.BeaconConn = Domoticz.Connection(Name="Beacon", Transport="UDP/IP", Address=sAddress, Port=str(sPort))
+        self.BeaconConn = Domoticz.Connection(Name="Beacon",
+                Transport="UDP/IP", Address=sAddress, Port=str(9009))
         self.BeaconConn.Listen()
 
     def onMessage(self, Connection, Data):
