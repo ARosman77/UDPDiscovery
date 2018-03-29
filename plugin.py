@@ -14,24 +14,14 @@
         <param field="Mode1" label="Discovery Type" width="275px">
             <options>
                 <option label="Dynamic Device Discovery" value="239.255.250.250:9161"/>
-                <option label="Simple Service Discovery Protocol" value="239.255.255.250:1900"  default="true" />
+                <option label="Simple Service Discovery Protocol" value="239.255.255.250:1900" />
+                <option label="MySensors clone over UDP" value="255.255.255.255:9009"  default="true" />
             </options>
         </param>
         <param field="Mode2" label="Create Devices" width="75px">
             <options>
                 <option label="True" value="True"/>
                 <option label="False" value="False"  default="true" />
-            </options>
-        </param>
-        <param field="Mode6" label="Debug" width="150px">
-            <options>
-                <option label="None" value="0"  default="true" />
-                <option label="Python Only" value="2"/>
-                <option label="Basic Debugging" value="62"/>
-                <option label="Basic+Messages" value="126"/>
-                <option label="Connections Only" value="16"/>
-                <option label="Connections+Queue" value="144"/>
-                <option label="All" value="-1"/>
             </options>
         </param>
     </params>
@@ -46,24 +36,28 @@ class BasePlugin:
         return
 
     def onStart(self):
-        if Parameters["Mode6"] != "0":
-            Domoticz.Debugging(int(Parameters["Mode6"]))
-            DumpConfigToLog()
-
-        if Parameters["Mode6"] != "Normal":
-            logFile = open(Parameters["HomeFolder"]+Parameters["Key"]+".log",'w')
+        DumpConfigToLog()
 
         sAddress, sep, sPort = Parameters["Mode1"].partition(':')
         self.BeaconConn = Domoticz.Connection(Name="Beacon",
-                Transport="UDP/IP", Address=sAddress, Port=str(9009))
+                Transport="UDP/IP", Address=sAddress, Port=str(sPort))
         self.BeaconConn.Listen()
 
     def onMessage(self, Connection, Data):
         try:
             strData = Data.decode("utf-8", "ignore")
             Domoticz.Log("onMessage called from: "+Connection.Address+":"+Connection.Port+" with data: "+strData)
-            Domoticz.Debug("Connection detail: : "+str(Connection))
-
+            #check if valid MySensors message received
+            nodeID,sensorID,cmd,ack,cmdType,payload = strData.split(';')
+            Domoticz.Log("MySensors message: ")
+            Domoticz.Log("nodeID: "+nodeID)
+            Domoticz.Log("child-sensor-id: "+sensorID)
+            Domoticz.Log("command: "+cmd);
+            Domoticz.Log("Ack?: "+ack);
+            Domoticz.Log("Type: "+cmdType);
+            Domoticz.Log("Payload: "+payload);
+            # try sending response over UDP
+            Connection.Send("0;0;3;0;4;20");
             if (Parameters["Mode2"] == "True"):
                 existingDevice = 0
                 existingName = (Parameters["Name"]+" - "+Connection.Address)
@@ -73,10 +67,14 @@ class BasePlugin:
                 if (existingDevice == 0):
                     Domoticz.Device(Name=Connection.Address, Unit=len(Devices)+1, TypeName="Text", Image=17).Create()
                     Domoticz.Log("Created device: "+Connection.Address)
-                    Devices[len(Devices)].Update(nValue=1, sValue=Connection.Address)
+                    Devices[len(Devices)].Update(nValue=1,
+                            sValue=Connection.Address+';'+strData)
                 else:
-                    Devices[existingDevice].Update(nValue=1, sValue=Connection.Address)
+                    Devices[existingDevice].Update(nValue=1,
+                            sValue=Connection.Address+';'+strData)
 
+        except ValueError:
+            Domoticz.Log("Not valid MySensors message...")
         except Exception as inst:
             Domoticz.Error("Exception in onMessage, called with Data: '"+str(strData)+"'")
             Domoticz.Error("Exception detail: '"+str(inst)+"'")
