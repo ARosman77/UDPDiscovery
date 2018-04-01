@@ -117,15 +117,18 @@ def processPresentationMsg(mySensorsMsg,Connection):
     if int(mySensorsMsg.cmdType) == const.Presentation.S_BARO:
         # Barometer device
         Domoticz.Log("Barometer device reported...")
-        pass
+        deviceUnit = int(mySensorsMsg.nodeID) + int(mySensorsMsg.sensorID)
+        CreateDevice("Barometer",deviceUnit,"Barometer",mySensorsMsg.payload)
     elif int(mySensorsMsg.cmdType) == const.Presentation.S_HUM:
-        # Humudity device
+        # Humidity device
         Domoticz.Log("Humidity device reported...")
-        pass
+        deviceUnit = int(mySensorsMsg.nodeID) + int(mySensorsMsg.sensorID)
+        CreateDevice("Humidity",deviceUnit,"Humidity",mySensorsMsg.payload)
     elif int(mySensorsMsg.cmdType) == const.Presentation.S_TEMP:
         # Temperature device
         Domoticz.Log("Temperature device reported...")
-        pass
+        deviceUnit = int(mySensorsMsg.nodeID) + int(mySensorsMsg.sensorID)
+        CreateDevice("Temperature",deviceUnit,"Temperature",mySensorsMsg.payload)
     else:
         # Curently not supported device
         Domoticz.Log("Device not supported!")
@@ -140,7 +143,7 @@ def processSetMsg(mySensorsMsg,Connection):
 
 def sendUDPMessage(Connection, mySensorsMsg):
     # try sending response over UDP
-    Domoticz.Log("Send to: "+Connection.Address+":"+Connection.Port+" data: "+mySensorsMsg)
+    Domoticz.Log("Send to: "+Connection.Address+":"+Connection.Port+" data: "+str(mySensorsMsg))
     Connection.Send(str(mySensorsMsg))
             
 #    if (Parameters["Mode2"] == "True"):
@@ -172,8 +175,16 @@ def UpdateDevice(Unit, nValue, sValue, AlwaysUpdate=False):
     return
 
 # Create device
-def CreateDevice():
-    pass
+def CreateDevice(deviceName,deviceUnit,deviceTypeName,deviceID):
+    Domoticz.Log("Creating device...")
+    if deviceUnit in Devices:
+        # device already present
+        Domoticz.Log("Device already present.")
+        pass
+    else:
+        # create device
+        Domoticz.Device(deviceName,deviceUnit,deviceTypeName,DeviceID=deviceID).Create()
+        Domoticz.Log("Device" + str(deviceName) + " created.")
 
 # Report new / current nodeID depending on uniqueID
 def getNodeID(uniqueID):
