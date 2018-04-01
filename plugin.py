@@ -38,6 +38,11 @@ class BasePlugin:
         return
 
     def onStart(self):
+        # Test by creating few different devices
+        Domoticz.Device("Device 1",1,"Temp+Hum").Create()
+        Domoticz.Device("Device 2",2,"Barometer",DeviceID="00:0a:95:9d:68:16").Create()
+        Domoticz.Device("Device 3",3,"Text",DeviceID="00:0a:95:9d:68:16:03").Create()
+        
         DumpConfigToLog()
 
         sAddress, sep, sPort = Parameters["Mode1"].partition(':')
