@@ -182,7 +182,10 @@ def getNodeID(uniqueID):
     if len(foundUnits) > 0:
         return min(foundUnits)
     else:
-        return max(Devices)+1
+        if len(Devices) > 0:
+            return max(Devices)+1
+        else:
+            return 1
 
 # Dump configuration to log
 def DumpConfigToLog():
@@ -190,7 +193,7 @@ def DumpConfigToLog():
         if Parameters[x] != "":
             Domoticz.Log( "'" + x + "':'" + str(Parameters[x]) + "'")
     Domoticz.Log("Device count: " + str(len(Devices)))
-    Domoticz.Log("Highest Unit: " + str(max(Devices)))
+    if len(Devices) > 0 : Domoticz.Log("Highest Unit: " + str(max(Devices)))
     for x in Devices:
         Domoticz.Log("Device:           " + str(x) + " - " + str(Devices[x]))
         Domoticz.Log("Device ID:       '" + str(Devices[x].ID) + "'")
