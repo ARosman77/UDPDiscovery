@@ -55,18 +55,21 @@ class BasePlugin:
             Domoticz.Log(repr(mySensorsMsg))
             
             # process supported messages
-            if(int(mySensorsMsg.cmd) == const.MessageType.internal):
-                processInternalMsg(mySensorsMsg,Connection)
-            elif (int(mySensorsMsg.cmd) == const.MessageType.presentation):
-                processPresentationMsg(mySensorsMsg,Connection)
-            elif (int(mySensorsMsg.cmd) == const.MessageType.set):
-                processSetMsg(mySensorsMsg,Connection)
-            else:
-                if mySensorsMsg.isValid():
-                    Domoticz.Log("Unsupported message!")
+            if mySensorsMsg.isValid:
+                if(int(mySensorsMsg.cmd) == const.MessageType.internal):
+                    processInternalMsg(mySensorsMsg,Connection)
+                elif (int(mySensorsMsg.cmd) == const.MessageType.presentation):
+                    processPresentationMsg(mySensorsMsg,Connection)
+                elif (int(mySensorsMsg.cmd) == const.MessageType.set):
+                    processSetMsg(mySensorsMsg,Connection)
                 else:
-                    Domoticz.Log("Not valid MySensors message!")
-
+                    if mySensorsMsg.isValid():
+                        Domoticz.Log("Unsupported message!")
+                    else:
+                        Domoticz.Log("Not valid MySensors message!")
+                    
+            # debug what we did to devices
+            DumpConfigToLog()
         except Exception as inst:
             Domoticz.Error("Exception in onMessage, called with Data: '"+str(strMessage)+"'")
             Domoticz.Error("Exception detail: '"+str(inst)+"'")
@@ -164,19 +167,20 @@ def CreateDevice():
 
 # Report new / current nodeID depending on uniqueID
 def getNodeID(uniqueID):
+    
     pass
 
 # Dump configuration to log
 def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
-            Domoticz.Debug( "'" + x + "':'" + str(Parameters[x]) + "'")
-    Domoticz.Debug("Device count: " + str(len(Devices)))
+            Domoticz.Log( "'" + x + "':'" + str(Parameters[x]) + "'")
+    Domoticz.Log("Device count: " + str(len(Devices)))
     for x in Devices:
-        Domoticz.Debug("Device:           " + str(x) + " - " + str(Devices[x]))
-        Domoticz.Debug("Device ID:       '" + str(Devices[x].ID) + "'")
-        Domoticz.Debug("Device Name:     '" + Devices[x].Name + "'")
-        Domoticz.Debug("Device nValue:    " + str(Devices[x].nValue))
-        Domoticz.Debug("Device sValue:   '" + Devices[x].sValue + "'")
-        Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
+        Domoticz.Log("Device:           " + str(x) + " - " + str(Devices[x]))
+        Domoticz.Log("Device ID:       '" + str(Devices[x].ID) + "'")
+        Domoticz.Log("Device Name:     '" + Devices[x].Name + "'")
+        Domoticz.Log("Device nValue:    " + str(Devices[x].nValue))
+        Domoticz.Log("Device sValue:   '" + Devices[x].sValue + "'")
+        Domoticz.Log("Device LastLevel: " + str(Devices[x].LastLevel))
     return
