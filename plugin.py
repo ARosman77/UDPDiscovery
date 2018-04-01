@@ -28,6 +28,7 @@
 </plugin>
 """
 import Domoticz
+import mySensorsConst as const
 
 class BasePlugin:
     BeaconConn = None
@@ -45,38 +46,28 @@ class BasePlugin:
 
     def onMessage(self, Connection, Data):
         try:
-            strData = Data.decode("utf-8", "ignore")
-            Domoticz.Log("onMessage called from: "+Connection.Address+":"+Connection.Port+" with data: "+strData)
-            #check if valid MySensors message received
-            nodeID,sensorID,cmd,ack,cmdType,payload = strData.split(';')
-            Domoticz.Log("MySensors message: ")
-            Domoticz.Log("nodeID: "+nodeID)
-            Domoticz.Log("child-sensor-id: "+sensorID)
-            Domoticz.Log("command: "+cmd);
-            Domoticz.Log("Ack?: "+ack);
-            Domoticz.Log("Type: "+cmdType);
-            Domoticz.Log("Payload: "+payload);
-            # try sending response over UDP
-            Connection.Send("0;0;3;0;4;20");
-            if (Parameters["Mode2"] == "True"):
-                existingDevice = 0
-                existingName = (Parameters["Name"]+" - "+Connection.Address)
-                for dev in Devices:
-                    if (Devices[dev].Name == existingName):
-                        existingDevice = dev
-                if (existingDevice == 0):
-                    Domoticz.Device(Name=Connection.Address, Unit=len(Devices)+1, TypeName="Text", Image=17).Create()
-                    Domoticz.Log("Created device: "+Connection.Address)
-                    Devices[len(Devices)].Update(nValue=1,
-                            sValue=Connection.Address+';'+strData)
+            strMessage = Data.decode("utf-8", "ignore")
+            Domoticz.Log("onMessage called from: "+Connection.Address+":"+Connection.Port+" with data: "+strMessage)
+            
+            # decode MySensors message
+            mySensorsMsg = MySensorsMessage(strMessage)
+            Domoticz.Log(repr(mySensorsMsg))
+            
+            # process supported messages
+            if(int(mySensorsMsg.cmd) == const.MessageType.internal):
+                processInternalMsg(mySensorsMsg,Connection)
+            elif (int(mySensorsMsg.cmd) == const.MessageType.presentation):
+                processPresentationMsg(mySensorsMsg,Connection)
+            elif (int(mySensorsMsg.cmd) == const.MessageType.set):
+                processSetMsg(mySensorsMsg,Connection)
+            else:
+                if mySensorsMsg.isValid():
+                    Domoticz.Log("Unsupported message!")
                 else:
-                    Devices[existingDevice].Update(nValue=1,
-                            sValue=Connection.Address+';'+strData)
+                    Domoticz.Log("Not valid MySensors message!")
 
-        except ValueError:
-            Domoticz.Log("Not valid MySensors message...")
         except Exception as inst:
-            Domoticz.Error("Exception in onMessage, called with Data: '"+str(strData)+"'")
+            Domoticz.Error("Exception in onMessage, called with Data: '"+str(strMessage)+"'")
             Domoticz.Error("Exception detail: '"+str(inst)+"'")
             raise
 
@@ -91,7 +82,150 @@ def onMessage(Connection, Data):
     global _plugin
     _plugin.onMessage(Connection, Data)
 
-    # Generic helper functions
+#############################################################################
+#                MySensors message processing functions                     #
+#############################################################################
+class MySensorsMessage:
+    nodeID = None
+    sensorID = None
+    cmd = None
+    ack = None
+    cmdType = None
+    payload = None
+    
+    def __init__(self,strMessage=None):
+        try:
+            self.nodeID,self.sensorID,self.cmd,self.ack,self.cmdType,self.payload = strMessage.split(';')
+        except ValueError:
+            # not valid message
+            self.nodeID = None
+            self.sensorID = None
+            self.cmd = None
+            self.ack = None
+            self.cmdType = None
+            self.payload = None
+        return
+    
+    def isValid(self):
+        # return true if all values are not None = true
+        return all([self.nodeID,self.sensorID,self.cmd,self.ack,self.cmdType,self.payload])
+    
+    def createMsg(self,nodeID,sensorID,cmd,ack,cmdType,payload):
+        self.nodeID = str(nodeID)
+        self.sensorID = str(sensorID)
+        self.cmd = str(cmd)
+        self.ack = str(ack)
+        self.cmdType = str(cmdType)
+        self.payload = str(payload)
+    
+    def __repr__(self):
+        # string representation used for debugging
+        if self.isValid():
+            strData  = "MySensors message: \n"
+            strData += "nodeID: " + str(self.nodeID) + "\n"
+            strData += "child-sensor-id: " + str(self.sensorID) + "\n"
+            strData += "command: " + str(self.cmd) + "\n"
+            strData += "Ack?: " + str(self.ack) + "\n"
+            strData += "Type: " + str(self.cmdType) + "\n"
+            strData += "Payload: " + str(self.payload) + "\n"
+        else:
+            strData  = "Unknown message!"
+        return strData
+    
+    def __str__(self):
+        # string representation used for sending messages
+        if self.isValid():
+            strData  = str(self.nodeID) + ";"
+            strData += str(self.sensorID) + ";"
+            strData += str(self.cmd) + ";"
+            strData += str(self.ack) + ";"
+            strData += str(self.cmdType) + ";"
+            strData += str(self.payload)
+        else:
+            strData  = ""
+        return strData
+
+def processInternalMsg(mySensorsMsg,Connection):
+    Domoticz.Log("Processing internal message...")
+    if int(mySensorsMsg.cmdType) == const.Internal.I_ID_REQUEST:
+        Domoticz.Log("->I_ID_REQUEST recived...")
+        # payload should have unique ID (MAC ADDRESS)
+        uniqueID = mySensorsMsg.payload
+        # check if uniqueID is already present on the system
+        # nodeID = getNodeID(uniqueID)
+        # send nodeID back
+        responseMgs = MySensorsMessage.createMsg(0,0,const.MessageType.internal,0,const.Internal.I_ID_RESPONSE,nodeID)
+        sendUDPMessage(Connection,responseMgs)
+    else:
+        Domoticz.Log("Unsupported request recived!")
+
+def processPresentationMsg(mySensorsMsg,Connection):
+    Domoticz.Log("Processing presentation message...")
+    if int(mySensorsMsg.cmdType) == const.Presentation.S_BARO:
+        # Barometer device
+        Domoticz.Log("Barometer device reported...")
+        pass
+    elif int(mySensorsMsg.cmdType) == const.Presentation.S_HUM:
+        # Humudity device
+        Domoticz.Log("Humidity device reported...")
+        pass
+    elif int(mySensorsMsg.cmdType) == const.Presentation.S_TEMP:
+        # Temperature device
+        Domoticz.Log("Temperature device reported...")
+        pass
+    else:
+        # Curently not supported device
+        Domoticz.Log("Device not supported!")
+
+def processSetMsg(mySensorsMsg,Connection):
+    Domoticz.Log("Processing set message...")
+    pass
+
+#############################################################################
+#                           UDP helper functions                            #
+#############################################################################
+
+def sendUDPMessage(Connection, mySensorsMsg):
+    # try sending response over UDP
+    Connection.Send(str(mySensorsMsg))
+            
+#    if (Parameters["Mode2"] == "True"):
+#        existingDevice = 0
+#        existingName = (Parameters["Name"]+" - "+Connection.Address)
+#        for dev in Devices:
+#            if (Devices[dev].Name == existingName):
+#                existingDevice = dev
+#        if (existingDevice == 0):
+#            Domoticz.Device(Name=Connection.Address, Unit=len(Devices)+1, TypeName="Text", Image=17).Create()
+#            Domoticz.Log("Created device: "+Connection.Address)
+#            Devices[len(Devices)].Update(nValue=1,
+#                    sValue=Connection.Address+';'+strData)
+#        else:
+#            Devices[existingDevice].Update(nValue=1,
+#                    sValue=Connection.Address+';'+strData)
+ 
+#############################################################################
+#                         Domoticz helper functions                         #
+#############################################################################
+
+# Update Device into database
+def UpdateDevice(Unit, nValue, sValue, AlwaysUpdate=False):
+    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
+    if Unit in Devices:
+        if Devices[Unit].nValue != nValue or Devices[Unit].sValue != sValue or AlwaysUpdate == True:
+            Devices[Unit].Update(nValue, str(sValue))
+            Domoticz.Log("Update " + Devices[Unit].Name + ": " + str(nValue) + " - '" + str(sValue) + "'")
+    return
+
+# Create device
+def CreateDevice():
+    pass
+
+# Report new / current nodeID depending on uniqueID
+def getNodeID(uniqueID):
+    pass
+
+# Dump configuration to log
 def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
