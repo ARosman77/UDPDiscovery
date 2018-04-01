@@ -106,8 +106,9 @@ def processInternalMsg(mySensorsMsg,Connection):
         nodeID = getNodeID(uniqueID)
         Domoticz.Log("NodeID " + str(nodeID) + " assigned...")
         # send nodeID back
-        responseMgs = MySensorsMessage.createMsg(0, 0, int(const.MessageType.internal), 0, int(const.Internal.I_ID_RESPONSE), nodeID)
-        sendUDPMessage(Connection,responseMgs)
+        responseMsg = MySensorsMessage()
+        responseMsg.createMsg(0, 0, int(const.MessageType.internal), 0, int(const.Internal.I_ID_RESPONSE), nodeID)
+        sendUDPMessage(Connection,responseMsg)
     else:
         Domoticz.Log("Unsupported request recived!")
 
