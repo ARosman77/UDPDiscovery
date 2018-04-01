@@ -76,7 +76,7 @@ class BasePlugin:
                         Domoticz.Log("Not valid MySensors message!")
                     
             # debug what we did to devices
-            DumpConfigToLog()
+            #DumpConfigToLog()
         except Exception as inst:
             Domoticz.Error("Exception in onMessage, called with Data: '"+str(strMessage)+"'")
             Domoticz.Error("Exception detail: '"+str(inst)+"'")
@@ -140,6 +140,7 @@ def processSetMsg(mySensorsMsg,Connection):
 
 def sendUDPMessage(Connection, mySensorsMsg):
     # try sending response over UDP
+    Domoticz.Log("Send to: "+Connection.Address+":"+Connection.Port+" data: "+mySensorsMsg)
     Connection.Send(str(mySensorsMsg))
             
 #    if (Parameters["Mode2"] == "True"):
