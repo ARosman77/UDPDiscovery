@@ -39,11 +39,11 @@ class BasePlugin:
 
     def onStart(self):
         # Test by creating few different devices
-        Domoticz.Device("Device a",1,"Temp+Hum",DeviceID="00:0a:95:9d:68:16").Create()
-        Domoticz.Device("Device b",2,"Barometer",DeviceID="00:0a:95:9d:68:16").Create()
-        Domoticz.Device("Device c",3,"Text",DeviceID="00:0a:95:9d:68:16").Create()
-        Domoticz.Device("Device d",18,"Text",DeviceID="00:0a:95:9d:68:18").Create()
-        Domoticz.Device("Device e",25,"Text",DeviceID="00:0a:95:9d:68:25").Create()
+        #Domoticz.Device("Device a",5,"Temp+Hum",DeviceID="00:0a:95:9d:68:16").Create()
+        #Domoticz.Device("Device b",4,"Barometer",DeviceID="00:0a:95:9d:68:16").Create()
+        #Domoticz.Device("Device c",3,"Text",DeviceID="00:0a:95:9d:68:16").Create()
+        #Domoticz.Device("Device d",42,"Text",DeviceID="00:0a:95:9d:68:18").Create()
+        #Domoticz.Device("Device e",7,"Text",DeviceID="00:0a:95:9d:68:25").Create()
         
         DumpConfigToLog()
 
@@ -104,6 +104,7 @@ def processInternalMsg(mySensorsMsg,Connection):
         uniqueID = mySensorsMsg.payload
         # check if uniqueID is already present on the system
         nodeID = getNodeID(uniqueID)
+        Domoticz.Log("NodeID" + str(nodeID) + "assigned...")
         # send nodeID back
         responseMgs = MySensorsMessage.createMsg(0,0,const.MessageType.internal,0,const.Internal.I_ID_RESPONSE,nodeID)
         sendUDPMessage(Connection,responseMgs)
@@ -174,8 +175,14 @@ def CreateDevice():
 
 # Report new / current nodeID depending on uniqueID
 def getNodeID(uniqueID):
-    
-    pass
+    foundUnits = []
+    for x in Devices:
+        if Devices[x].DeviceID == uniqueID:
+            foundUnits.append(x)
+    if len(foundUnits) > 0:
+        return min(foundUnits)
+    else:
+        return max(Devices)+1
 
 # Dump configuration to log
 def DumpConfigToLog():
@@ -183,6 +190,7 @@ def DumpConfigToLog():
         if Parameters[x] != "":
             Domoticz.Log( "'" + x + "':'" + str(Parameters[x]) + "'")
     Domoticz.Log("Device count: " + str(len(Devices)))
+    Domoticz.Log("Highest Unit: " + str(max(Devices)))
     for x in Devices:
         Domoticz.Log("Device:           " + str(x) + " - " + str(Devices[x]))
         Domoticz.Log("Device ID:       '" + str(Devices[x].ID) + "'")
