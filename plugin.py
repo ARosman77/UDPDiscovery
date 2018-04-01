@@ -55,7 +55,7 @@ class BasePlugin:
             Domoticz.Log(repr(mySensorsMsg))
             
             # process supported messages
-            if mySensorsMsg.isValid:
+            if mySensorsMsg.isValid():
                 if(int(mySensorsMsg.cmd) == const.MessageType.internal):
                     processInternalMsg(mySensorsMsg,Connection)
                 elif (int(mySensorsMsg.cmd) == const.MessageType.presentation):
