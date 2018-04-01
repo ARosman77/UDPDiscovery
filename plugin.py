@@ -39,9 +39,11 @@ class BasePlugin:
 
     def onStart(self):
         # Test by creating few different devices
-        Domoticz.Device("Device 1",1,"Temp+Hum").Create()
-        Domoticz.Device("Device 2",2,"Barometer",DeviceID="00:0a:95:9d:68:16").Create()
-        Domoticz.Device("Device 3",3,"Text",DeviceID="00:0a:95:9d:68:16:03").Create()
+        Domoticz.Device("Device a",1,"Temp+Hum",DeviceID="00:0a:95:9d:68:16").Create()
+        Domoticz.Device("Device b",2,"Barometer",DeviceID="00:0a:95:9d:68:16").Create()
+        Domoticz.Device("Device c",3,"Text",DeviceID="00:0a:95:9d:68:16").Create()
+        Domoticz.Device("Device d",18,"Text",DeviceID="00:0a:95:9d:68:18").Create()
+        Domoticz.Device("Device e",25,"Text",DeviceID="00:0a:95:9d:68:25").Create()
         
         DumpConfigToLog()
 
@@ -184,6 +186,7 @@ def DumpConfigToLog():
     for x in Devices:
         Domoticz.Log("Device:           " + str(x) + " - " + str(Devices[x]))
         Domoticz.Log("Device ID:       '" + str(Devices[x].ID) + "'")
+        Domoticz.Log("Device HwID:     '" + str(Devices[x].DeviceID) + "'")
         Domoticz.Log("Device Name:     '" + Devices[x].Name + "'")
         Domoticz.Log("Device nValue:    " + str(Devices[x].nValue))
         Domoticz.Log("Device sValue:   '" + Devices[x].sValue + "'")
